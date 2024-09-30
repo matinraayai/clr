@@ -160,6 +160,17 @@ void __hipRegisterManagedVar(
                                    size, align, reinterpret_cast<hip::FatBinaryInfo**>(hipModule));
   status = PlatformState::instance().registerStatManagedVar(var_ptr);
   guarantee((status == hipSuccess), "Cannot register Static Managed Var, error: %d", status);
+  static int enable_deferred_loading{[]() {
+      char *var = getenv("HIP_ENABLE_DEFERRED_LOADING");
+      return var ? atoi(var) : 1;
+  }()};
+
+  if (!enable_deferred_loading) {
+    for (int dev_idx = 0; dev_idx < g_devices.size(); ++dev_idx) {
+      status = PlatformState::instance().initStatManagedVarDevicePtr(dev_idx);
+      guarantee((status == hipSuccess), "Cannot initialize static managed variable, error: %d", status);
+    }
+  }
 }
 
 void __hipRegisterTexture(
